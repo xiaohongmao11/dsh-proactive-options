@@ -1,6 +1,6 @@
 {
   "name": "dsh-proactive-options",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "主动回复选项：把需要用户拍板的问题变成可点选项。既可以独立装进 DSH，也可以被 dsh-pet 等宠物插件复用同一份能力。",
   "type": "module",
   "main": "index.js",
@@ -15,7 +15,8 @@
     "cordis.patch.yml",
     "README.md",
     "README.en.md",
-    "LICENSE"
+    "LICENSE",
+    "restart.js"
   ],
   "keywords": [
     "dsh",

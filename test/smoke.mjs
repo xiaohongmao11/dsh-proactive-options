@@ -66,15 +66,23 @@ console.log('\n[4] 正常询问 + 工具注册')
   }
   const tools = []
   const api = apply(ctx, {})
-  ok('工具已注册', tools.length === 1 && tools[0].name === 'reply_options')
+  const replyTool = tools.find((t) => t.name === 'reply_options')
+  const restartTool = tools.find((t) => t.name === 'restart_dsh')
+  ok('两个工具都注册了', tools.length === 2 && !!replyTool && !!restartTool)
 
-  const out = await tools[0].execute({ question: '这个方案继续做吗' }, { agent: { id: 'a' } })
+  const out = await replyTool.execute({ question: '这个方案继续做吗' }, { agent: { id: 'a' } })
   ok('执行返回用户选择', out.ok === true && out.picked[0] === '是，继续')
   ok('询问带了默认是/否选项', calls.length === 1 && calls[0].questions[0].options.length === 2)
   ok('问题原样传给宿主', calls[0].questions[0].question === '这个方案继续做吗')
 
-  const rendered = tools[0].output.render({}, out)
+  const rendered = replyTool.output.render({}, out)
   ok('回执文本可用', rendered[0].text === '[用户选了：是，继续]')
+
+  // 重启工具：假答案不是「重启」→ 不许真的重启，只如实返回 restarted:false
+  const r2 = await restartTool.execute({}, { agent: { id: 'a' } })
+  ok('重启工具先问「重启/不重启」',
+    calls[1].questions[0].options.map((o) => o.label).join(',') === '重启,不重启')
+  ok('没点重启就不执行', r2.ok === true && r2.restarted === false)
 
   api.dispose()
   ok('dispose 不抛', true)

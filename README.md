@@ -46,15 +46,26 @@ const out = await askOptions(ctx, { agent: exec.agent, signal: exec.signal }, no
 
 返回：`{ ok, picked: string[], custom?: string, reason?: string }`，模型侧看到的是 `[用户选了：是，继续]`。
 
+## 自动重启也在选项里
+
+装新插件、改完配置需要重启时，不再让用户自己去点菜单——同一个插件提供 `restart_dsh` 工具：
+
+1. 先弹「重启 / 不重启」两个选项；
+2. 用户点「重启」→ 才真的派发重启（独立 PowerShell 进程，脱离宿主进程树）；
+3. 点「不重启」→ 什么都不做。
+
+派发有 60 秒防抖，连点不会重复重启。
+
 ## 设计取舍
 
 - **为什么不做「点一下直接替用户发送」**：DSH 客户端只有 `inputActions.insertText()`（把文字插进草稿），没有代用户提交的接口。硬做只能模拟回车，草稿里已有内容会被一起发出去。所以本插件只负责「问」和「选」，发送永远由用户自己按。
+- **为什么不把 `AbortSignal` 传进 `userQuestions.ask`**：那个调用要过 remote 网关做无损 JSON 序列化，`AbortSignal` 传不过去，会直接报 `api gateway: Remote event request is not lossless JSON data`。
 - **为什么 `inject` 是空的**：拿不到 `tools` 服务时，最坏结果只是「工具没注册」，绝不会让插件 entry 变成 pending/failed 拖垮整栈。
 - **为什么 core 单独一个文件**：DSH 独立跑和宠物里跑必须用同一套参数规范化与回执格式，否则两边行为迟早走偏。
 
 ## 状态
 
-- v0.1.0：宿主插件 + 可复用核心 + 自检（18 项）
+- v0.1.1：宿主插件 + 可复用核心 + 自动重启（走选项）+ 自检（20 项）
 - 计划：输入框上方的常驻按钮条（走 `conversation.input.activity` 插槽 + `insertText`）
 
 ## 许可

@@ -44,6 +44,14 @@ One capability, different presentation.
 
 Returns `{ ok, picked, custom?, reason? }`; the model sees `[鐢ㄦ埛閫変簡锛氭槸锛岀户缁璢`.
 
+## Auto-restart is an option too
+
+When new plugins or profile changes need a restart, the same plugin ships a `restart_dsh` tool:
+
+1. It first shows two options: **Restart / Don't restart**.
+2. Only a click on "Restart" dispatches the reboot (a detached PowerShell process, outside the host process tree).
+3. A 60-second debounce prevents double restarts.
+
 ## Design notes
 
 - **No auto-send on click.** The DSH client exposes only `inputActions.insertText()` 鈥?there is no API to submit on the user's behalf. Faking an Enter keypress would also submit any text already in the draft, so this plugin only asks and records; sending stays in the user's hands.

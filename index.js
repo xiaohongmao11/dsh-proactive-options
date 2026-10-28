@@ -12,6 +12,7 @@
  */
 
 import { formatAnswer, normalizeAskArgs, validateAsk } from './core.js'
+import { KEEP_OPTION_LABEL, RESTART_OPTION_LABEL, isRestartPick, restartDsh } from './restart.js'
 
 export const name = 'dsh-proactive-options'
 export const VERSION = '0.1.0'
@@ -142,21 +143,82 @@ const TOOL_DEF = {
   execute: async (args, exec) => askOptions(TOOL_DEF.__ctx, exec, args),
 }
 
+/**
+ * 重启工具：先问，用户点「重启」才真的重启。
+ * 这样「重启」也是选项的一部分，而不是一条需要用户自己执行的命令。
+ */
+const RESTART_TOOL = {
+  name: 'restart_dsh',
+  description:
+    '重启 DSH，但先弹「重启 / 不重启」选项，用户点「重启」才执行。需要重启（装了新插件、改了配置）就用它，不要自己跑命令。',
+  parameters: {
+    type: 'object',
+    properties: {
+      question: { type: 'string', description: '要问的话，默认「现在重启 DSH 吗？」' },
+      header: { type: 'string', description: '可选短标题（≤12 字）' },
+      detail: { type: 'string', description: '可选补充说明（比如为什么要重启）' },
+    },
+    additionalProperties: false,
+  },
+  output: {
+    schema: {
+      type: 'object',
+      properties: {
+        ok: { type: 'boolean' },
+        restarted: { type: 'boolean' },
+        picked: { type: 'array', items: { type: 'string' } },
+        reason: { type: 'string' },
+      },
+      required: ['ok'],
+    },
+    render: (_args, out) => [
+      {
+        type: 'text',
+        text: out.ok
+          ? out.restarted
+            ? '[用户选了：重启 —— 已派发重启，页面稍后自己回来]'
+            : '[用户选了：不重启 —— 保持现状]'
+          : `[重启未执行：${out.reason || '未知原因'}]`,
+      },
+    ],
+  },
+  execute: async (args, exec) => {
+    const out = await askOptions(TOOL_DEF.__ctx, exec, {
+      question: String(args?.question || '现在重启 DSH 吗？'),
+      header: args?.header ? String(args.header) : '重启',
+      detail: args?.detail ? String(args.detail) : undefined,
+      options: [
+        { label: RESTART_OPTION_LABEL, description: '马上重启，页面会自动回来' },
+        { label: KEEP_OPTION_LABEL, description: '先不动，保持现在的状态' },
+      ],
+    })
+    if (!out.ok) return { ok: false, reason: out.reason }
+    if (!isRestartPick(out.picked)) {
+      return { ok: true, restarted: false, picked: out.picked }
+    }
+    const r = restartDsh(log)
+    return { ok: r.ok, restarted: r.ok, picked: out.picked, reason: r.error }
+  },
+}
+
 export function apply(ctx, config = {}) {
   log(`apply v${VERSION}`)
 
   TOOL_DEF.__ctx = ctx
 
   let registered = false
+  const TOOLS = [TOOL_DEF, RESTART_TOOL]
   const register = (tools, via) => {
     if (registered || !tools?.register) return
     registered = true
-    try {
-      const dispose = tools.register(TOOL_DEF)
-      log(`工具已注册：reply_options（来源 ${via}）`)
-      if (typeof dispose === 'function') disposers.push(dispose)
-    } catch (err) {
-      log(`工具注册失败：${err?.message ?? err}`)
+    for (const def of TOOLS) {
+      try {
+        const dispose = tools.register(def)
+        log(`工具已注册：${def.name}（来源 ${via}）`)
+        if (typeof dispose === 'function') disposers.push(dispose)
+      } catch (err) {
+        log(`工具注册失败 ${def.name}：${err?.message ?? err}`)
+      }
     }
   }
   const disposers = []
