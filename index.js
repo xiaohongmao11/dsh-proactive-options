@@ -48,20 +48,16 @@ export async function askOptions(ctx, world, args) {
   if (!agent) return { ok: false, reason: '没有可用的 agent（子代理里问不了人）' }
 
   try {
-    const answer = await svc.ask({
-      questions: [
-        {
-          id: 'reply-options',
-          question: norm.question,
-          header: norm.header,
-          detail: norm.detail,
-          options: norm.options,
-          multiSelect: norm.multiSelect,
-        },
-      ],
-      agent,
-      signal: world?.signal,
-    })
+    // 注意：不要把 AbortSignal 塞进 request —— userQuestions.ask 经 remote 网关序列化，
+    // AbortSignal 不是可无损传输的 JSON，会报
+    // "api gateway: Remote event request is not lossless JSON data"。
+    const question = { id: 'reply-options', question: norm.question }
+    if (norm.header) question.header = norm.header
+    if (norm.detail) question.detail = norm.detail
+    question.options = norm.options
+    if (norm.multiSelect) question.multiSelect = true
+
+    const answer = await svc.ask({ questions: [question], agent })
     const item = Array.isArray(answer?.answers) ? answer.answers[0] : null
     return {
       ok: true,
