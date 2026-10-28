@@ -27,6 +27,14 @@
     "proactive",
     "choice"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xiaohongmao11/dsh-proactive-options.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xiaohongmao11/dsh-proactive-options/issues"
+  },
+  "homepage": "https://github.com/xiaohongmao11/dsh-proactive-options#readme",
   "engines": {
     "node": ">=20"
   },
