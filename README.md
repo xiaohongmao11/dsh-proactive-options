@@ -10,8 +10,8 @@
 ## 安装（DSH 独立使用）
 
 ```bash
-# 已发布到 npm 之后
-dsh plugin --profile desktop add dsh-proactive-options
+# 直接从 GitHub 安装
+dsh plugin --profile desktop add github:xiaohongmao11/dsh-proactive-options
 
 # 本地开发
 dsh plugin --profile desktop add link:D:\缓存\Dsh workspace\dsh-proactive-options
