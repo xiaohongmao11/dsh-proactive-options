@@ -1,0 +1,14 @@
+# ============================================================================
+# dsh-proactive-options — DSH bundle patch
+# ============================================================================
+# 插件挂载声明。DSH 启动时按 bundle 层栈叠加各插件的 patch。
+#
+# 安装：
+#   dsh plugin --profile <profile> add dsh-proactive-options
+# 本地开发：
+#   dsh plugin --profile <profile> add link:<本目录绝对路径>
+# ============================================================================
+
+- insert:
+    - id: dsh-proactive-options
+      name: dsh-proactive-options
