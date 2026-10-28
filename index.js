@@ -60,14 +60,17 @@ export async function askOptions(ctx, world, args) {
 
     const answer = await svc.ask({ questions: [question], agent })
     const item = Array.isArray(answer?.answers) ? answer.answers[0] : null
-    return {
+    // 只放有值的字段：undefined 会让工具输出过不了「无损 JSON」校验，
+    // 报 tool returned invalid output: value is not lossless JSON（用户取消/未选时必踩）。
+    const out = {
       ok: true,
       picked: Array.isArray(item?.selected) ? item.selected.map(String) : [],
-      custom: item?.custom ? String(item.custom) : undefined,
     }
+    if (item?.custom) out.custom = String(item.custom)
+    return out
   } catch (err) {
     log('询问失败：' + (err?.message ?? err))
-    return { ok: false, reason: err?.code || err?.message || '提问失败' }
+    return { ok: false, reason: String(err?.code || err?.message || '提问失败') }
   }
 }
 
@@ -192,12 +195,14 @@ const RESTART_TOOL = {
         { label: KEEP_OPTION_LABEL, description: '先不动，保持现在的状态' },
       ],
     })
-    if (!out.ok) return { ok: false, reason: out.reason }
+    if (!out.ok) return { ok: false, reason: String(out.reason || '选项未送达') }
     if (!isRestartPick(out.picked)) {
       return { ok: true, restarted: false, picked: out.picked }
     }
     const r = restartDsh(log)
-    return { ok: r.ok, restarted: r.ok, picked: out.picked, reason: r.error }
+    const res = { ok: r.ok, restarted: r.ok, picked: out.picked }
+    if (r.error) res.reason = String(r.error)
+    return res
   },
 }
 
